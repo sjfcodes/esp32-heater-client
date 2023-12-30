@@ -1,16 +1,8 @@
-// https :  //randomnerdtutorials.com/esp32-ds18b20-temperature-arduino-ide/
-#include <Arduino.h>
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <ArduinoJson.h>
-// #include <Arduino_JSON.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
+#include "header.h"
 
 // GPIO where the DS18B20 is connected to
 const int oneWireBus = 33;
 const int LED_32 = 32;
-// const int LED_BUILTIN = 2;
 
 // Setup a oneWire instance to communicate with any OneWire devices
 OneWire oneWire(oneWireBus);
@@ -85,8 +77,8 @@ void loop()
     float tempF = sensors.getTempFByIndex(0);
     Serial.println("TempF: " + String(tempF) + "ºF");
     httpPost(tempF);
-    digitalWrite(LED_BUILTIN, HIGH);
-    digitalWrite(LED_32, LOW);
+    // digitalWrite(LED_BUILTIN, HIGH);
+    // digitalWrite(LED_32, LOW);
   }
   else
   {
@@ -95,7 +87,7 @@ void loop()
 
   delay(1000);
   Serial.println("---");
-  digitalWrite(LED_BUILTIN, LOW);
-  digitalWrite(LED_32, HIGH);
-  delay(1000);
+  // digitalWrite(LED_BUILTIN, LOW);
+  // digitalWrite(LED_32, HIGH);
+  // delay(1000);
 }

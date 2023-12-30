@@ -1,93 +1,160 @@
-#include "header.h"
+/*********
+  Rui Santos
+  Complete instructions at https://RandomNerdTutorials.com/esp32-websocket-server-sensor/
 
-// GPIO where the DS18B20 is connected to
-const int oneWireBus = 33;
-const int LED_32 = 32;
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+*********/
 
-// Setup a oneWire instance to communicate with any OneWire devices
-OneWire oneWire(oneWireBus);
+#include <Arduino.h>
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include "SPIFFS.h"
+#include <Arduino_JSON.h>
+#include <Adafruit_BME280.h>
+#include <Adafruit_Sensor.h>
 
-// Pass our oneWire reference to Dallas Temperature sensor
-DallasTemperature sensors(&oneWire);
+// Replace with your network credentials
+const char *ssid = "new-new-internet";
+const char *password = "mileymo19";
 
-void connectToWifi()
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+
+// Create a WebSocket object
+AsyncWebSocket ws("/ws");
+
+// Json Variable to Hold Sensor Readings
+JSONVar readings;
+
+// Timer variables
+unsigned long lastTime = 0;
+unsigned long timerDelay = 30000;
+
+// Create a sensor object
+Adafruit_BME280 bme;
+
+// Init BME280
+void initBME()
 {
-  const char *ssid = "new-new-internet";
-  const char *password = "mileymo19";
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
+  if (!bme.begin(0x76))
+  {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1)
+      ;
+  }
+}
 
+// Get Sensor Readings and return JSON object
+String getSensorReadings()
+{
+  readings["temperature"] = String(bme.readTemperature());
+  readings["humidity"] = String(bme.readHumidity());
+  readings["pressure"] = String(bme.readPressure() / 100.0F);
+  String jsonString = JSON.stringify(readings);
+  return jsonString;
+}
+
+// Initialize SPIFFS
+void initSPIFFS()
+{
+  if (!SPIFFS.begin(true))
+  {
+    Serial.println("An error has occurred while mounting SPIFFS");
+  }
+  Serial.println("SPIFFS mounted successfully");
+}
+
+// Initialize WiFi
+void initWiFi()
+{
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi ..");
   while (WiFi.status() != WL_CONNECTED)
   {
-    Serial.print(".");
-    delay(500);
+    Serial.print('.');
+    delay(1000);
   }
-
-  Serial.println("\nConnected");
-  Serial.print("ip address: ");
   Serial.println(WiFi.localIP());
 }
 
-void httpPost(float tempF)
+void notifyClients(String sensorReadings)
 {
-  // get chip id
-  String chipId = String((uint32_t)ESP.getEfuseMac(), HEX);
+  ws.textAll(sensorReadings);
+}
 
-  // Prepare JSON document
-  DynamicJsonDocument doc(2048);
-  doc["chipName"] = "esp32";
-  doc["chipId"] = chipId.c_str();
-  doc["tempF"] = tempF;
+void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
+{
+  AwsFrameInfo *info = (AwsFrameInfo *)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
+  {
+    // data[len] = 0;
+    // String message = (char*)data;
+    //  Check if the message is "getReadings"
+    // if (strcmp((char*)data, "getReadings") == 0) {
+    // if it is, send current sensor readings
+    String sensorReadings = getSensorReadings();
+    Serial.print(sensorReadings);
+    notifyClients(sensorReadings);
+    //}
+  }
+}
 
-  // Serialize JSON document
-  String json;
-  serializeJson(doc, json);
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
+{
+  switch (type)
+  {
+  case WS_EVT_CONNECT:
+    Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+    break;
+  case WS_EVT_DISCONNECT:
+    Serial.printf("WebSocket client #%u disconnected\n", client->id());
+    break;
+  case WS_EVT_DATA:
+    handleWebSocketMessage(arg, data, len);
+    break;
+  case WS_EVT_PONG:
+  case WS_EVT_ERROR:
+    break;
+  }
+}
 
-  // HTTP
-  WiFiClient client; // or WiFiClientSecure for HTTPS
-  HTTPClient http;
-
-  // Send request
-  http.begin(client, "http://192.168.68.142:3000/api/temperature");
-  http.addHeader("Content-Type", "application/json");
-  http.POST(json);
-
-  // Read response
-  Serial.println(http.getString());
-
-  // Disconnect
-  http.end();
+void initWebSocket()
+{
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
 }
 
 void setup()
 {
   Serial.begin(115200);
-  connectToWifi();
-  // Start the DS18B20 sensor
-  sensors.begin();
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(LED_32, OUTPUT);
+  initBME();
+  initWiFi();
+  initSPIFFS();
+  initWebSocket();
+
+  // Web Server Root URL
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(SPIFFS, "/index.html", "text/html"); });
+
+  server.serveStatic("/", SPIFFS, "/");
+
+  // Start server
+  server.begin();
 }
 
 void loop()
 {
-  if ((WiFi.status() == WL_CONNECTED))
+  if ((millis() - lastTime) > timerDelay)
   {
-    sensors.requestTemperatures();
-    float tempF = sensors.getTempFByIndex(0);
-    Serial.println("TempF: " + String(tempF) + "ºF");
-    httpPost(tempF);
-    // digitalWrite(LED_BUILTIN, HIGH);
-    // digitalWrite(LED_32, LOW);
-  }
-  else
-  {
-    Serial.println("offline");
+    String sensorReadings = getSensorReadings();
+    Serial.print(sensorReadings);
+    notifyClients(sensorReadings);
+
+    lastTime = millis();
   }
 
-  delay(1000);
-  Serial.println("---");
-  // digitalWrite(LED_BUILTIN, LOW);
-  // digitalWrite(LED_32, HIGH);
-  // delay(1000);
+  ws.cleanupClients();
 }

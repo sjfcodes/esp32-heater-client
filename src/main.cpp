@@ -10,14 +10,16 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include "SPIFFS.h"
+// #include "SPIFFS.h"
 #include <Arduino_JSON.h>
-#include <Adafruit_BME280.h>
-#include <Adafruit_Sensor.h>
+// #include <Adafruit_BME280.h>
+// #include <Adafruit_Sensor.h>
+// #include <OneWire.h>
+// #include <DallasTemperature.h>
 
 // Replace with your network credentials
-const char *ssid = "REPLACE_WITH_YOUR_SSID";
-const char *password = "REPLACE_WITH_YOUR_PASSWORD";
+const char *ssid = "new-new-internet";
+const char *password = "mileymo19";
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -33,38 +35,38 @@ unsigned long lastTime = 0;
 unsigned long timerDelay = 30000;
 
 // Create a sensor object
-Adafruit_BME280 bme;
+// Adafruit_BME280 bme;
 
 // Init BME280
-void initBME()
-{
-  if (!bme.begin(0x76))
-  {
-    Serial.println("Could not find a valid BME280 sensor, check wiring!");
-    while (1)
-      ;
-  }
-}
+// void initBME()
+// {
+//   if (!bme.begin(0x76))
+//   {
+//     Serial.println("Could not find a valid BME280 sensor, check wiring!");
+//     while (1)
+//       ;
+//   }
+// }
 
 // Get Sensor Readings and return JSON object
 String getSensorReadings()
 {
-  readings["temperature"] = String(bme.readTemperature());
-  readings["humidity"] = String(bme.readHumidity());
-  readings["pressure"] = String(bme.readPressure() / 100.0F);
+  readings["temperature"] = String("temperature");
+  readings["humidity"] = String("humidity");
+  readings["pressure"] = String("pressure");
   String jsonString = JSON.stringify(readings);
   return jsonString;
 }
 
 // Initialize SPIFFS
-void initSPIFFS()
-{
-  if (!SPIFFS.begin(true))
-  {
-    Serial.println("An error has occurred while mounting SPIFFS");
-  }
-  Serial.println("SPIFFS mounted successfully");
-}
+// void initSPIFFS()
+// {
+//   if (!SPIFFS.begin(true))
+//   {
+//     Serial.println("An error has occurred while mounting SPIFFS");
+//   }
+//   Serial.println("SPIFFS mounted successfully");
+// }
 
 // Initialize WiFi
 void initWiFi()
@@ -130,19 +132,19 @@ void initWebSocket()
 void setup()
 {
   Serial.begin(115200);
-  initBME();
+  // initBME();
   initWiFi();
-  initSPIFFS();
+  // initSPIFFS();
   initWebSocket();
 
-  // Web Server Root URL
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-            { request->send(SPIFFS, "/index.html", "text/html"); });
+  // // Web Server Root URL
+  // server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+  //           { request->send(SPIFFS, "/index.html", "text/html"); });
 
-  server.serveStatic("/", SPIFFS, "/");
+  // server.serveStatic("/", SPIFFS, "/");
 
-  // Start server
-  server.begin();
+  // // Start server
+  // server.begin();
 }
 
 void loop()

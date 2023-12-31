@@ -4,12 +4,19 @@
 #include <ArduinoJson.h>
 
 // Wifi Credentials
-const char *ssid = "new-new-internet"; // Wifi SSID
-const char *password = "mileymo19";    // Wi-FI Password
-WebSocketsClient webSocket;            // websocket client class instance
-StaticJsonDocument<100> doc;           // Allocate a static JSON document
+const char *ssid = ""; // Wifi SSID
+const char *password = "";    // Wi-FI Password
 
-// int LED_BUILTIN = 32;
+// Websocket server location
+const int wsServerPort = 3001;                 // websocket server port
+const char *wsServerIp = "192.168.68.142";     // websocket server's host ip
+const char *wsServerPath = "/heaterGpioState"; // websocket server path
+
+// GPIO
+const int thermoPin = 33;
+const int heaterPin = 32;
+WebSocketsClient webSocket;  // websocket client class instance
+StaticJsonDocument<100> doc; // Allocate a static JSON document
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
 {
@@ -29,11 +36,13 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     if (isOn == true)
     {
       Serial.println("true");
+      digitalWrite(heaterPin, HIGH);
       digitalWrite(LED_BUILTIN, HIGH);
     }
     else
     {
       Serial.println("false");
+      digitalWrite(heaterPin, LOW);
       digitalWrite(LED_BUILTIN, LOW);
     }
   }
@@ -54,12 +63,11 @@ void setup()
   Serial.println(WiFi.localIP()); // Print local IP address
   delay(2000);                    // wait for 2s
 
-  // address, port, and URL path
-  webSocket.begin("192.168.68.142", 3001, "/heaterGpioState");
-  // webSocket event handler
+  webSocket.begin(wsServerIp, wsServerPort, wsServerPath);
   webSocket.onEvent(webSocketEvent);
   // if connection failed retry every 5s
   webSocket.setReconnectInterval(5000);
+  pinMode(heaterPin, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
 }
 void loop()

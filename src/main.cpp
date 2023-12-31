@@ -1,7 +1,7 @@
-#include <WiFi.h>
+#include <ArduinoJson.h>
 #include <WebServer.h>
 #include <WebSocketsClient.h>
-#include <ArduinoJson.h>
+#include <WiFi.h>
 
 // Wifi Credentials
 const char *ssid = "";     // Wifi SSID

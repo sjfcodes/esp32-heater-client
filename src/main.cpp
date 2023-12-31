@@ -37,13 +37,13 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     {
       digitalWrite(LED_BUILTIN, HIGH); // Led on
       digitalWrite(heaterPin, HIGH);   // Heat on
-      Serial.println("Heater on");     // log action
+      Serial.println("Heater on");     // Print action log
     }
     else
     {
       digitalWrite(LED_BUILTIN, LOW); // Led off
       digitalWrite(heaterPin, LOW);   // Heat off
-      Serial.println("Heater off");   // log action
+      Serial.println("Heater off");   // Print action log
     }
   }
 }
@@ -57,8 +57,9 @@ void setup()
     Serial.print(".");
     delay(500);
   }
-  Serial.println("IP : " + String(WiFi.localIP())); // Print local IP address
-  delay(2000);                                      // Pause 2s
+  Serial.println();                                      // Advance terminal line
+  Serial.println("Local IP: " + String(WiFi.localIP())); // Print action log
+  delay(2000);                                           // Pause 2s
 
   webSocket.begin(wsServerIp, wsServerPort, wsServerPath); // Connect to ws server
   webSocket.onEvent(webSocketEvent);                       // Handle ws events

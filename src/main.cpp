@@ -1,162 +1,68 @@
-/*********
-  Rui Santos
-  Complete instructions at https://RandomNerdTutorials.com/esp32-websocket-server-sensor/
-
-  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.
-  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-*********/
-
-#include <Arduino.h>
 #include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-// #include "SPIFFS.h"
-#include <Arduino_JSON.h>
-// #include <Adafruit_BME280.h>
-// #include <Adafruit_Sensor.h>
-// #include <OneWire.h>
-// #include <DallasTemperature.h>
+#include <WebServer.h>
+#include <WebSocketsClient.h>
+#include <ArduinoJson.h>
 
-// Replace with your network credentials
-const char *ssid = "new-new-internet";
-const char *password = "mileymo19";
+// Wifi Credentials
+const char *ssid = "new-new-internet"; // Wifi SSID
+const char *password = "mileymo19";    // Wi-FI Password
+WebSocketsClient webSocket;            // websocket client class instance
+StaticJsonDocument<100> doc;           // Allocate a static JSON document
 
-// Create AsyncWebServer object on port 80
-AsyncWebServer server(80);
+// int LED_BUILTIN = 32;
 
-// Create a WebSocket object
-AsyncWebSocket ws("/ws");
-
-// Json Variable to Hold Sensor Readings
-JSONVar readings;
-
-// Timer variables
-unsigned long lastTime = 0;
-unsigned long timerDelay = 30000;
-
-// Create a sensor object
-// Adafruit_BME280 bme;
-
-// Init BME280
-// void initBME()
-// {
-//   if (!bme.begin(0x76))
-//   {
-//     Serial.println("Could not find a valid BME280 sensor, check wiring!");
-//     while (1)
-//       ;
-//   }
-// }
-
-// Get Sensor Readings and return JSON object
-String getSensorReadings()
+void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
 {
-  readings["temperature"] = String("temperature");
-  readings["humidity"] = String("humidity");
-  readings["pressure"] = String("pressure");
-  String jsonString = JSON.stringify(readings);
-  return jsonString;
-}
+  Serial.println("webSocketEvent type: " + String(type));
 
-// Initialize SPIFFS
-// void initSPIFFS()
-// {
-//   if (!SPIFFS.begin(true))
-//   {
-//     Serial.println("An error has occurred while mounting SPIFFS");
-//   }
-//   Serial.println("SPIFFS mounted successfully");
-// }
-
-// Initialize WiFi
-void initWiFi()
-{
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi ..");
-  while (WiFi.status() != WL_CONNECTED)
+  if (type == WStype_TEXT)
   {
-    Serial.print('.');
-    delay(1000);
+    DeserializationError error = deserializeJson(doc, payload); // deserialize incoming Json String
+    if (error)
+    { // Print erro msg if incoming String is not JSON formatted
+      Serial.println("deserializeJson() failed: " + String(error.c_str()));
+      return;
+    }
+
+    const boolean isOn = doc["isOn"];
+    Serial.println("isOn: " + String(isOn));
+    if (isOn == true)
+    {
+      Serial.println("true");
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+    else
+    {
+      Serial.println("false");
+      digitalWrite(LED_BUILTIN, LOW);
+    }
   }
-  Serial.println(WiFi.localIP());
-}
-
-void notifyClients(String sensorReadings)
-{
-  ws.textAll(sensorReadings);
-}
-
-void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
-{
-  AwsFrameInfo *info = (AwsFrameInfo *)arg;
-  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
-  {
-    // data[len] = 0;
-    // String message = (char*)data;
-    //  Check if the message is "getReadings"
-    // if (strcmp((char*)data, "getReadings") == 0) {
-    // if it is, send current sensor readings
-    String sensorReadings = getSensorReadings();
-    Serial.print(sensorReadings);
-    notifyClients(sensorReadings);
-    //}
-  }
-}
-
-void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
-{
-  switch (type)
-  {
-  case WS_EVT_CONNECT:
-    Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-    break;
-  case WS_EVT_DISCONNECT:
-    Serial.printf("WebSocket client #%u disconnected\n", client->id());
-    break;
-  case WS_EVT_DATA:
-    handleWebSocketMessage(arg, data, len);
-    break;
-  case WS_EVT_PONG:
-  case WS_EVT_ERROR:
-    break;
-  }
-}
-
-void initWebSocket()
-{
-  ws.onEvent(onEvent);
-  server.addHandler(&ws);
 }
 
 void setup()
 {
+  // Connect to local WiFi
+  WiFi.begin(ssid, password);
   Serial.begin(115200);
-  // initBME();
-  initWiFi();
-  // initSPIFFS();
-  initWebSocket();
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println();
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP()); // Print local IP address
+  delay(2000);                    // wait for 2s
 
-  // // Web Server Root URL
-  // server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-  //           { request->send(SPIFFS, "/index.html", "text/html"); });
-
-  // server.serveStatic("/", SPIFFS, "/");
-
-  // // Start server
-  // server.begin();
+  // address, port, and URL path
+  webSocket.begin("192.168.68.142", 3001, "/heaterGpioState");
+  // webSocket event handler
+  webSocket.onEvent(webSocketEvent);
+  // if connection failed retry every 5s
+  webSocket.setReconnectInterval(5000);
+  pinMode(LED_BUILTIN, OUTPUT);
 }
-
 void loop()
 {
-  if ((millis() - lastTime) > timerDelay)
-  {
-    String sensorReadings = getSensorReadings();
-    Serial.print(sensorReadings);
-    notifyClients(sensorReadings);
-
-    lastTime = millis();
-  }
-
-  ws.cleanupClients();
+  webSocket.loop(); // Keep the socket alive
 }

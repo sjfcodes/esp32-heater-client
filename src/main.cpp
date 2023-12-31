@@ -18,10 +18,23 @@ const int heaterPin = 32;    // Heater GPIO pin
 WebSocketsClient webSocket;  // Websocket client instance
 StaticJsonDocument<100> doc; // Allocate a static JSON document
 
+void turnHeaterOn()
+{
+  digitalWrite(LED_BUILTIN, HIGH); // Led on
+  digitalWrite(heaterPin, HIGH);   // Heat on
+  Serial.println("Heater on");     // Print action log
+}
+
+void turnHeaterOff()
+{
+  digitalWrite(LED_BUILTIN, LOW); // Led off
+  digitalWrite(heaterPin, LOW);   // Heat off
+  Serial.println("Heater off");   // Print action log
+}
+
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
 {
   Serial.println("webSocketEvent type: " + String(type));
-
   if (type == WStype_TEXT)
   {
     DeserializationError error = deserializeJson(doc, payload); // deserialize incoming Json String
@@ -34,32 +47,29 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     const boolean isOn = doc["isOn"];
     Serial.println("isOn: " + String(isOn));
     if (isOn == true)
-    {
-      digitalWrite(LED_BUILTIN, HIGH); // Led on
-      digitalWrite(heaterPin, HIGH);   // Heat on
-      Serial.println("Heater on");     // Print action log
-    }
+      turnHeaterOn();
     else
-    {
-      digitalWrite(LED_BUILTIN, LOW); // Led off
-      digitalWrite(heaterPin, LOW);   // Heat off
-      Serial.println("Heater off");   // Print action log
-    }
+      turnHeaterOff();
   }
+  Serial.println("---");
 }
 
 void setup()
 {
-  Serial.begin(115200);                 // Connect to Terminal
-  WiFi.begin(ssid, password);           // Connect to WiFi
+  Serial.begin(115200);       // Connect to Terminal
+  WiFi.begin(ssid, password); // Connect to WiFi
+  Serial.println("");
+  Serial.print("WiFi Connecting");
   while (WiFi.status() != WL_CONNECTED) // Waiting on Wifi
   {
     Serial.print(".");
     delay(500);
   }
+
   Serial.println();                                      // Advance terminal line
+  Serial.println("WiFi Connected!");                     //
   Serial.println("Local IP: " + String(WiFi.localIP())); // Print action log
-  delay(2000);                                           // Pause 2s
+  // delay(2000);                                           // Pause 2s
 
   webSocket.begin(wsServerIp, wsServerPort, wsServerPath); // Connect to ws server
   webSocket.onEvent(webSocketEvent);                       // Handle ws events
@@ -67,6 +77,7 @@ void setup()
 
   pinMode(heaterPin, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
+  Serial.println("---");
 }
 void loop()
 {

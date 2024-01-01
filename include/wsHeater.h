@@ -1,2 +1,3 @@
-void wsHeaterSetup();
-void wsHeaterLoop();
+void heaterSetup();
+void heaterOn();
+void heaterOff();

@@ -1,0 +1,2 @@
+void wsHeaterSetup();
+void wsHeaterLoop();

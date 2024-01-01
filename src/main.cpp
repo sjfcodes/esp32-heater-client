@@ -1,30 +1,14 @@
-#include <WebSocketsClient.h>
-#include <WiFi.h>
-#include "heater.h"
-
-// Wifi Credentials
-const char *ssid = "";     // Wifi SSID
-const char *password = ""; // Wifi Password
+#include "wsHeater.h"
+#include "wifiConnect.h"
+#include <ArduinoJson.h>
 
 // GPIO
 const int thermoPin = 33; // Thermostat GPIO pin
 
 void setup()
 {
-  Serial.begin(115200);       // Connect to Terminal
-  WiFi.begin(ssid, password); // Connect to WiFi
-  Serial.println("");
-  Serial.print("WiFi Connecting");
-  while (WiFi.status() != WL_CONNECTED) // Waiting on Wifi
-  {
-    Serial.print(".");
-    delay(500);
-  }
-
-  Serial.println();                                      // Advance terminal line
-  Serial.println("WiFi Connected!");                     //
-  Serial.println("Local IP: " + String(WiFi.localIP())); // Print action log
-
+  Serial.begin(115200);
+  wifiConnect();
   wsHeaterSetup();
   Serial.println("---");
 }

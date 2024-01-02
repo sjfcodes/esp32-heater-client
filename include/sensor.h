@@ -1,3 +1,3 @@
 void sensorSetup();
-void sensorLoop();
+float getTemperature();
 float getHumidity();

@@ -17,6 +17,7 @@ void sensorSetup()
     dht.begin();
     Serial.println("Setting up DHT22.");
 }
+
 float getHumidity()
 {
     // Reading temperature or humidity takes about 250 milliseconds!
@@ -25,40 +26,25 @@ float getHumidity()
     // Check if any reads failed and exit early (to try again).
     if (isnan(h))
     {
-        Serial.println(F("Failed to read humidity from DHT sensor!"));
-        return h;
+        Serial.println("Failed to read humidity from DHT sensor!");
+        return (float)0;
     }
 
     return h;
 }
-void getTemperature()
-{
-}
-void get()
-{
-}
-void sensorLoop()
-{
-    // Wait a few seconds between measurements.
 
-    // // Reading temperature or humidity takes about 250 milliseconds!
-    // // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-    // float h = dht.readHumidity();
+float getTemperature()
+{
     // Read temperature as Celsius (the default)
-    float t = dht.readTemperature();
+    // float tempC = dht.readTemperature();
+
     // Read temperature as Fahrenheit (isFahrenheit = true)
-    float f = dht.readTemperature(true);
-
+    float tempF = dht.readTemperature(true);
     // Check if any reads failed and exit early (to try again).
-    if (isnan(t) || isnan(f))
+    if (isnan(tempF))
     {
-        Serial.println(F("Failed to read from DHT sensor!"));
-        return;
+        Serial.println("Failed to read temperature from DHT sensor!");
+        return (float)0;
     }
-
-    Serial.print(F("Temperature: "));
-    Serial.print(t);
-    Serial.print(F("°C "));
-    Serial.print(f);
-    Serial.print(F("°F"));
+    return tempF;
 }

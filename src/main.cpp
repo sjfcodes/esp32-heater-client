@@ -8,11 +8,11 @@
 #include <WebSocketsClient.h>
 
 // Websocket server location
-const int wsServerPort = 3001;                 // Websocket server port
-const char *wsServerIp = "192.168.68.142";     // Websocket server's host ip
-const char *wsServerPath = "/heaterGpioState"; // Websocket server path
-WebSocketsClient webSocket;                    // Websocket client instance
-StaticJsonDocument<100> doc;                   // Allocate static JSON document
+const int wsServerPort = 3001;              // Websocket server port
+const char *wsServerIp = "192.168.68.142";  // Websocket server's host ip
+const char *wsServerPath = "/heater-cab-0"; // Websocket server path
+WebSocketsClient webSocket;                 // Websocket client instance
+StaticJsonDocument<100> doc;                // Allocate static JSON document
 
 unsigned long epochTime;     // Variable to save current epoch time
 unsigned long nextEpochTime; // Variable to save next epoch time
@@ -55,22 +55,25 @@ void setup()
 
 void loop()
 {
-
   webSocket.loop(); // Keep the socket alive
+
+  /**
+   * using a delay(5000) in the loop
+   * caused the websocket connection to fail
+   * as a workaround, measure epoch on each iteration
+   * broadcast new data when enough time passes
+   */
   epochTime = getTime();
   if (epochTime == nextEpochTime)
   {
     Serial.println("Epoch Time: " + String(epochTime));
-    nextEpochTime = epochTime + 2;
+    nextEpochTime = epochTime + 5;
 
-    float h = getHumidity();
-    Serial.print("Humidity: ");
-    Serial.println(h);
-    sensorLoop();
-    /*
-[TODO]:
-  get other sensor data
-  write sensor data to Websocket server
-    */
+    float cabHumidity = getHumidity();
+    float cabTempF = getTemperature();
+
+    webSocket.sendTXT("{\"cabHumidity\":" + String(cabHumidity) + ",\"cabTempF\":" + String(cabTempF) + ",\"updatedAt\":" + String(epochTime) + "}");
+    Serial.println("{\"cabHumidity\":" + String(cabHumidity) + ",\"cabTempF\":" + String(cabTempF) + ",\"updatedAt\":" + String(epochTime) + "}");
+    Serial.println("---");
   }
 }

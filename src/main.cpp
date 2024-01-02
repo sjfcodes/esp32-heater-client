@@ -29,9 +29,9 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
       return;
     }
 
-    const boolean isOn = doc["isOn"];
-    Serial.println("isOn: " + String(isOn));
-    if (isOn == true)
+    const boolean heaterPinVal = doc["heaterPinVal"];
+    Serial.println("heaterPinVal: " + String(heaterPinVal));
+    if (heaterPinVal == true)
       heaterOn();
     else
       heaterOff();
@@ -49,7 +49,7 @@ void setup()
   heaterSetup();                                           // Init pin GPIO pin
   sensorSetup();
   setupTime();
-  nextEpochTime = getTime() + 2;
+  nextEpochTime = getTime() + 3;
   Serial.println("---");
 }
 
@@ -58,7 +58,7 @@ void loop()
   webSocket.loop(); // Keep the socket alive
 
   /**
-   * using a delay(5000) in the loop
+   * using a delay(3000) in the loop
    * caused the websocket connection to fail
    * as a workaround, measure epoch on each iteration
    * broadcast new data when enough time passes
@@ -67,13 +67,14 @@ void loop()
   if (epochTime == nextEpochTime)
   {
     Serial.println("Epoch Time: " + String(epochTime));
-    nextEpochTime = epochTime + 5;
+    nextEpochTime = epochTime + 3;
 
     float cabHumidity = getHumidity();
     float cabTempF = getTemperature();
+    int heaterPinVal = getPinState();
 
-    webSocket.sendTXT("{\"cabHumidity\":" + String(cabHumidity) + ",\"cabTempF\":" + String(cabTempF) + ",\"updatedAt\":" + String(epochTime) + "}");
-    Serial.println("{\"cabHumidity\":" + String(cabHumidity) + ",\"cabTempF\":" + String(cabTempF) + ",\"updatedAt\":" + String(epochTime) + "}");
+    webSocket.sendTXT("{\"cabHumidity\":" + String(cabHumidity) + ",\"heaterPinVal\":" + String(heaterPinVal) + ",\"cabTempF\":" + String(cabTempF) + ",\"updatedAt\":" + String(epochTime) + "}");
+    Serial.println("{\"cabHumidity\":" + String(cabHumidity) + ",\"heaterPinVal\":" + String(heaterPinVal) + ",\"cabTempF\":" + String(cabTempF) + ",\"updatedAt\":" + String(epochTime) + "}");
     Serial.println("---");
   }
 }

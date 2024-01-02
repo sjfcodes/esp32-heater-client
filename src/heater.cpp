@@ -3,7 +3,7 @@
 #include <WebSocketsClient.h>
 #include <WiFi.h>
 
-const int heaterPin = 32;    // Heater GPIO pin
+const int heaterPin = 32; // Heater GPIO pin
 
 void heaterOn()
 {
@@ -23,4 +23,9 @@ void heaterSetup()
 {
     pinMode(heaterPin, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
+}
+
+int getPinState()
+{
+    return (int)digitalRead(heaterPin);
 }

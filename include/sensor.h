@@ -1,3 +1,3 @@
 void sensorSetup();
-float getTemperature();
-float getHumidity();
+short getTemperature();
+short getHumidity();

@@ -12,24 +12,25 @@ const int wsServerPort = 3001;              // Websocket server port
 const char *wsServerIp = "192.168.68.142";  // Websocket server's host ip
 const char *wsServerPath = "/heater-cab-0"; // Websocket server path
 WebSocketsClient webSocket;                 // Websocket client instance
-StaticJsonDocument<100> doc;                // Allocate static JSON document
+StaticJsonDocument<100> JsonIn;             // Allocate static JSON document
 
-unsigned long epochTime;     // Variable to save current epoch time
-unsigned long nextEpochTime; // Variable to save next epoch time
+const short loopIntervalSec = 4; // Seconds between each loop
+unsigned long epochTime;         // Variable to save current epoch time
+unsigned long nextEpochTime;     // Variable to save next epoch time
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
 {
   Serial.println("webSocketEvent type: " + String(type));
   if (type == WStype_TEXT)
   {
-    DeserializationError error = deserializeJson(doc, payload); // deserialize incoming Json String
+    DeserializationError error = deserializeJson(JsonIn, payload); // deserialize incoming Json String
     if (error)
     { // Print erro msg if incoming String is not JSON formatted
       Serial.println("JSON DeserializationError: " + String(error.c_str()));
       return;
     }
 
-    const boolean heaterPinVal = doc["heaterPinVal"];
+    const boolean heaterPinVal = JsonIn["heaterPinVal"];
     Serial.println("heaterPinVal: " + String(heaterPinVal));
     if (heaterPinVal == true)
       heaterOn();
@@ -45,11 +46,11 @@ void setup()
   wifiConnect();
   webSocket.begin(wsServerIp, wsServerPort, wsServerPath); // Connect to ws server
   webSocket.onEvent(webSocketEvent);                       // Handle ws events
-  webSocket.setReconnectInterval(5000);                    // Handle connection failure, retry every 5s
+  webSocket.setReconnectInterval(loopIntervalSec * 1000);  // Handle connection failure, retry every 5s
   heaterSetup();                                           // Init pin GPIO pin
   sensorSetup();
   setupTime();
-  nextEpochTime = getTime() + 3;
+  nextEpochTime = getTime() + loopIntervalSec;
   Serial.println("---");
 }
 
@@ -58,23 +59,30 @@ void loop()
   webSocket.loop(); // Keep the socket alive
 
   /**
-   * using a delay(3000) in the loop
-   * caused the websocket connection to fail
-   * as a workaround, measure epoch on each iteration
-   * broadcast new data when enough time passes
+   * Using a delay(3000) in the loop caused
+   * the websocket connection to fail.
+   * As a workaround, measure epoch on
+   * each iteration, broadcast new
+   * data when enough time passes.
    */
   epochTime = getTime();
-  if (epochTime == nextEpochTime)
+  if (epochTime > nextEpochTime)
   {
     Serial.println("Epoch Time: " + String(epochTime));
-    nextEpochTime = epochTime + 3;
+    nextEpochTime = epochTime + loopIntervalSec;
 
-    float cabHumidity = getHumidity();
-    float cabTempF = getTemperature();
+    short cabHumidity = getHumidity();
+    short cabTempF = getTemperature();
     int heaterPinVal = getPinState();
 
-    webSocket.sendTXT("{\"cabHumidity\":" + String(cabHumidity) + ",\"heaterPinVal\":" + String(heaterPinVal) + ",\"cabTempF\":" + String(cabTempF) + ",\"updatedAt\":" + String(epochTime) + "}");
-    Serial.println("{\"cabHumidity\":" + String(cabHumidity) + ",\"heaterPinVal\":" + String(heaterPinVal) + ",\"cabTempF\":" + String(cabTempF) + ",\"updatedAt\":" + String(epochTime) + "}");
+    StringSumHelper Json = "{";
+    Json += "\"cabHumidity\":" + String(cabHumidity);
+    Json += ",\"heaterPinVal\":" + String(heaterPinVal);
+    Json += ",\"cabTempF\":" + String(cabTempF);
+    Json += ",\"updatedAt\":" + String(epochTime);
+    Json += "}";
+    webSocket.sendTXT(Json);
+    Serial.println(Json);
     Serial.println("---");
   }
 }

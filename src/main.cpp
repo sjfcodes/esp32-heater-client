@@ -15,12 +15,30 @@ WebSocketsClient webSocket;                 // Websocket client instance
 StaticJsonDocument<100> JsonIn;             // Allocate static JSON document
 
 const short loopIntervalSec = 4; // Seconds between each loop
-unsigned long epochTime;         // Variable to save current epoch time
-unsigned long nextEpochTime;     // Variable to save next epoch time
+unsigned long epochTime;         // Current epoch time
+unsigned long nextEpochTime;     // Next epoch time
+unsigned long offlineAt;         // Track time websocket goes offline
+const short resetAfterOfflineForSec = 30;
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
 {
   Serial.println("webSocketEvent type: " + String(type));
+  if (type == WStype_DISCONNECTED)
+  {
+    unsigned long now = getTime();
+    if (!offlineAt)
+    {
+      // set offlineAt
+      offlineAt = now;
+      Serial.println("Set offlineAt: " + String(offlineAt));
+    }
+    // if offline for xx seconds, restart & attempt reconnect
+    else if (now - offlineAt > resetAfterOfflineForSec)
+    {
+      Serial.println("Restarting at: " + String(now));
+      ESP.restart();
+    }
+  }
   if (type == WStype_TEXT)
   {
     DeserializationError error = deserializeJson(JsonIn, payload); // deserialize incoming Json String

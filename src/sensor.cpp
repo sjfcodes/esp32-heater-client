@@ -15,7 +15,7 @@ DHT dht(DHTPIN, DHTTYPE);
 void sensorSetup()
 {
     dht.begin();
-    Serial.println("Setting up DHT22.");
+    Serial.println("Setup DHT22");
 }
 
 short getHumidity()

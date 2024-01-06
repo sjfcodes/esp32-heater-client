@@ -104,7 +104,7 @@ void loop()
     webSocket.sendTXT(Json);
     Serial.println(Json);
     Serial.println("---");
-    delay(300);
+    delay(500);
     digitalWrite(LED_BUILTIN, LOW);
   }
 }

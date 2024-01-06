@@ -65,7 +65,8 @@ void setup()
   webSocket.begin(wsServerIp, wsServerPort, wsServerPath); // Connect to ws server
   webSocket.onEvent(webSocketEvent);                       // Handle ws events
   webSocket.setReconnectInterval(loopIntervalSec * 1000);  // Handle connection failure, retry every 5s
-  heaterSetup();                                           // Init pin GPIO pin
+  pinMode(LED_BUILTIN, OUTPUT);
+  heaterSetup();
   sensorSetup();
   setupTime();
   nextEpochTime = getTime() + loopIntervalSec;
@@ -86,6 +87,7 @@ void loop()
   epochTime = getTime();
   if (epochTime > nextEpochTime)
   {
+    digitalWrite(LED_BUILTIN, HIGH);
     Serial.println("Epoch Time: " + String(epochTime));
     nextEpochTime = epochTime + loopIntervalSec;
 
@@ -102,5 +104,7 @@ void loop()
     webSocket.sendTXT(Json);
     Serial.println(Json);
     Serial.println("---");
+    delay(300);
+    digitalWrite(LED_BUILTIN, LOW);
   }
 }

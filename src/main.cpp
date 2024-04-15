@@ -19,6 +19,7 @@ unsigned long epochTime;         // Current epoch time
 unsigned long nextEpochTime;     // Next epoch time
 unsigned long offlineAt;         // Track time websocket goes offline
 const short resetAfterOfflineForSec = 30;
+String chipId;
 
 void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
 {
@@ -61,7 +62,8 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
 void setup()
 {
   Serial.begin(115200);
-  wifiConnect();
+  chipId = String((uint32_t)ESP.getEfuseMac(), HEX);       // Set chip id
+  wifiConnect();                                           // Connect to wifi
   webSocket.begin(wsServerIp, wsServerPort, wsServerPath); // Connect to ws server
   webSocket.onEvent(webSocketEvent);                       // Handle ws events
   webSocket.setReconnectInterval(loopIntervalSec * 1000);  // Handle connection failure, retry every 5s
@@ -99,6 +101,7 @@ void loop()
     Json += "\"cabHumidity\":" + String(cabHumidity);
     Json += ",\"heaterPinVal\":" + String(heaterPinVal);
     Json += ",\"cabTempF\":" + String(cabTempF);
+    Json += ",\"chipId\": \"" + chipId + "\"";
     Json += ",\"updatedAt\":" + String(epochTime);
     Json += "}";
     webSocket.sendTXT(Json);

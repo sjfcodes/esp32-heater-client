@@ -3,7 +3,7 @@
 #include <WebSocketsClient.h>
 #include <WiFi.h>
 
-const short heaterPin = 32; // Heater GPIO pin
+const short heaterPin = 33; // Heater GPIO pin
 
 void heaterOn()
 {
